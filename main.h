@@ -8,13 +8,16 @@
 #include <regex>
 #include <functional>
 #include <algorithm>
+#include <Urlmon.h>
+#include <Shlwapi.h>
+#include <direct.h>
 #include "Helper.hpp"
 using namespace MiraiCP;
 // 插件实例
 class Main : public CPPPlugin {
 public:
     // 配置插件信息
-    Main() : CPPPlugin(PluginConfig("Plugin id", "Plugin name", "Version", "Author name", "Plugin description", "Publish time")) {}
+    Main() :cwd(_getcwd(0, 0) + std::string("\\")), CPPPlugin(PluginConfig("Plugin id", "Plugin name", "Version", "Author name", "Plugin description", "Publish time")) {}
     void onEnable() override {
     // 监听
         Event::processor.registerEvent<GroupMessageEvent>([this](GroupMessageEvent e)
@@ -30,7 +33,7 @@ public:
         /*插件结束*/
     }
 private:
-    using MsgFunc = std::function<void(const std::string& strint, GroupMessageEvent& e)>;
+    using MsgFunc = std::function<void(const std::string&, GroupMessageEvent&)>;
     std::unordered_map<std::string, MsgFunc> msgCall;
 
     void OnGroupMessage(GroupMessageEvent e);

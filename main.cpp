@@ -1,6 +1,7 @@
 #include "main.h"
 #include "Helper.hpp"
-
+#pragma comment(lib, "Urlmon.lib")
+#pragma comment(lib, "Shlwapi.lib")
 using namespace std;
 using namespace nlohmann;
 
@@ -11,8 +12,10 @@ void MiraiCP::enrollPlugin() {
 
 void Main::OnGroupMessage(GroupMessageEvent e)
 {
-	static const regex rules[] = { regex("!(draw)\\s*(.*)"),regex("!(r)\\s*(.*)") };
-	string msg = e.message.toMiraiCode();
+	static const regex rules[] = { regex("[!.](draw)\\s*(.*)"),regex("[!.](r)\\s*(.*)"),regex("[!.](uploadimg)\\s*(\\w+)\\s*.*"),regex("[!.](img)\\s*(\\w+)\\s*.*") };
+	if (e.message.vector().size() == 0 || SingleMessage::messageType[e.message.vector().front().type()] != "plainText")
+		return;
+	string msg = e.message.vector().front().get<PlainText>().content;
 	for (const regex& reg : rules)
 	{
 		smatch matches;
@@ -43,6 +46,65 @@ void Main::registerMsgFunctions()
 	msgCall["r"] = [this](const string& src, GroupMessageEvent& e)
 	{
 		e.group.sendMessage(e.sender.nickOrNameCard(), "抽取的随机数为:\n", Shitful::procRandExpr(src));
+	};
+
+	msgCall["uploadimg"] = [this](const string& src, GroupMessageEvent& e)
+	{
+		printf("src:%s\n", src.c_str());
+		
+		for (auto& msg : e.message.vector())
+		{
+			if (SingleMessage::messageType[msg.type()] == "image")
+			{
+				Image img = msg.get<Image>();
+				img.refreshInfo();
+				if (img.url)
+				{
+					const string& imgURL = *(img.url);
+					const string& name = src;
+					printf("tp:%d\n", img.imageType);
+					printf("name:%s\n", name.c_str());
+					if (PathFileExists(("uploads/"s + name).c_str()))
+					{
+						e.group.sendMessage("上传失败: ", name, "已存在");
+						return;
+					}
+					printf("%s\n", name.c_str());
+					HRESULT ret = URLDownloadToFile(
+						nullptr,
+						imgURL.c_str(), // 在这里写上网址
+						("uploads/"s + name).c_str(),
+						0,
+						nullptr
+					);
+					if (ret == S_OK)
+						e.group.sendMessage("上传成功，文件名为: ", name);
+					else if(ret == E_OUTOFMEMORY)
+						e.group.sendMessage("上传失败: 内存不足 ");
+					else
+						e.group.sendMessage("上传失败: 网络异常 ");
+					return;
+						 
+				}
+				else
+					e.group.sendMessage("上传失败: 图片url无效");
+
+				return;
+			}
+		}
+
+		e.group.sendMessage("未接受到图片");
+	};
+
+	msgCall["img"] = [this](const string& src, GroupMessageEvent& e)
+	{
+		if (!PathFileExists(("uploads\\" + src).c_str()))
+		{
+			e.group.sendMessage("图片不存在: ", src);
+			return;
+		}
+		Image img = e.group.uploadImg(cwd + "uploads\\" + src);
+		e.group.sendMessage(img);
 	};
 }
 
