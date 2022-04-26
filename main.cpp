@@ -164,7 +164,7 @@ string Main::drawCard(const string& handle, const json& target)
 		if (regex_match(temp, matches, removeProbability) && matches.str(2) != "")
 			sumWeight += stoul(matches.str(2));
 		else
-			sumWeight += 100;
+			sumWeight += 1;
 
 		weight.push_back(sumWeight);
 	}

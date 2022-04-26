@@ -5,16 +5,16 @@
 #include <random>
 namespace Shitful
 {
+	inline std::random_device rd;
 	unsigned long random(unsigned long upper) // [0,upper)
 	{
-		extern std::random_device rd;
 		return rd() % upper;
 	}
 
 	long long calcSingleRand(std::string src)
 	{
 		using namespace std;
-		static const regex splitSingle("(d?)([1-9][0-9]*)");
+		static const regex splitSingle("(d?)([0-9]+)");
 		long long ret = 1;
 		regex_iterator<string::iterator> it(src.begin(), src.end(), splitSingle), end;
 		int last = 0;
@@ -22,7 +22,7 @@ namespace Shitful
 		{
 			long long rst = stoll(it->str(2));
 			if (it->str(1) == "d")
-				rst = random(rst);
+				rst = random(rst + 1);
 			ret *= rst;
 
 			last = it->position() + it->str().length();
